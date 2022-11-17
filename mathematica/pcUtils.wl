@@ -8,7 +8,7 @@
 *)
 
 
-BeginPackage["pcUtils`"]
+BeginPackage["pcUtils`","pcRead1D`"]
 
 
 (* ::Chapter:: *)
@@ -26,22 +26,25 @@ thrown away."
 pcDifferences::usage="pcDifferences[l] returns
 {(l2-l1)/2, (l2-l1)/2+(l4-l3)/2, ..., (l[n]-l[n-1])/2}."
 
-pcFit::usage="pcFit[data,sp,fact:{1,1,1},\"lEcho\"->False] fits the data with 
-some model specified by sp, prints out the result, and returns a the fitted curve.
-One can also use Reap[pcFit[...]] to get the fitting parameters.
+pcFit::usage="pcFit[data,sp,fact:{1,1,1}] fits the data with
+some model specified by sp, prints out the result, and returns the fitted model.
 Inputs:
   data: A List of the form {{x1,y1},{x2,y2},...,{xn,yn}.
   sp: Either a String that matches the implemented models, or simply an expression
       using \"x\" as the variable and \"a\"[i] as parameters.
       Example: \"a\"[1]+Log[\"a\"[2],\"x\"]^(\"a\"[3]).
-      For the moment allows for up to 10 paramters.
+      For the moment allows for up to 3 paramters.
   fact: Optional. A List of length 3. The fitted curve is rescaled: The x coordinates of the
         first and last points are rescaled by a factor of fact[[1]] and fact[[2]],
         respectively, and the whole curve is rescaled by fact[[3]].
-Options:
-  \"lEcho\": If True, then returns the original data rather than the fitted curve.
 Outputs:
-  Prints out the fitted parameters, and returns a List."
+  Prints out the fitted model (PowerLaw and Exp models also return a linear curve),
+  and returns an Association object, with the following keys:
+    \"FittedModel\" -> the resulting FittedModel object
+    \"FittedCurve\" -> the fitted and rescaled data
+    \"Parameters\" -> the fitted parameters
+    \"Errors\"  -> errors of the fitted parameters
+    \"PwE\" -> the fitted parameters with errors around them."
 
 pcNumberToTex::usage="pcNumberToTex[x,n:1] first converts a number x into scientific form
 with n-digit precision, and then converts it into a Tex-form string.
@@ -68,6 +71,24 @@ Output:
 \\hline
 \\end{tabular}"
 
+pcCombine::usage="pcCombine[sim,simCont,readF,args] combines data produced by two runs,
+sim and simCont, where simCont is supposed to be a run restarted from some intermediate
+time of sim. Data from sim after this restarting time will be removed.
+Inputs:
+  sim, simCont: String. Directories of the two runs.
+  readF: The function needed to read the data file(s).
+  args: Argument(s) needed by readF.
+Outputs:
+  Same format as that of readF.
+Example:
+  pcCombine[sim,simCont,read1D2Scale,\"power_kin.dat\",5] to combine the spectrum data."
+
+pcMergePower::usage="pcMergePower[sim,simCont] merges the data/power*.dat files of sim
+and simCont, where simCont is supposed to be a run restarted from some intermediate
+time of sim. Data from sim after this restarting time will be removed. The old power*.dat
+files will be renamed to power*.dat.bk. If a .bk file exists, it will not be rewritten and
+the corresponding data file will be skipped and not merged."
+
 pcPkgDir::usage="pcPkgDir[] opens the directory of this package."
 
 
@@ -88,30 +109,41 @@ pcDifferences[l_]:=Module[{dl},
   {dl[[1]]/2,Mean/@(Partition[dl,2,1]),dl[[-1]]/2}//Flatten
 ]
 
-Options[pcFit]={"lEcho"->False};
-pcFit[data_,sp_,fact_List:{1,1,1},OptionsPattern[]]:=Module[{model,llog,a,x,sol,minmax},
-  llog=False;
+pcFit[data_,sp_,fact_List:{1,1,1}]:=Module[
+  {llinear,funcx,funcy,model,a,x,tmp,fit,fittedCurve,p,e},
+  llinear=False;
+  funcx=funcy={Identity,Identity};
+  tmp=data/.Around[xx_,yy_]:>xx;
+  
   model=Switch[sp,
-    "PowerLaw",llog=True;a[1]+a[2]*x,
+    "PowerLaw",llinear=True;funcx=funcy={Log,Exp},
     "PowerLaw+C",a[1]+a[2]*x^a[3],
-    "Linear",a[1]+a[2]*x,
-    "Exp",a[1]*Exp[a[2]*x],
+    "Linear",llinear=True,
+    "Exp",llinear=True;funcy={Log,Exp},
     "Exp+C",a[1]+a[2]*Exp[a[3]*x],
     _,sp/.{"x"->x,"a"->a}
   ];
-  Sow[model/.{a[i_]:>("a["<>ToString@i<>"]"),x->"x"}];
-  If[llog,
-    sol=FindFit[Log@data,model,a/@Range[10],x];
-    model=Exp[model/.x->Log[x]/.sol],
-    (*else*)
-    sol=FindFit[Log@data,model,a/@Range[10],x];
-    model=model/.sol
+  tmp=Transpose[{funcx[[1]][tmp[[;;,1]]],funcy[[1]][tmp[[;;,2]]]}];
+  
+  fit=If[llinear,
+    LinearModelFit[tmp,x,x],
+    NonlinearModelFit[tmp,model,a/@Range[3],x]
   ];
-  Sow[sol/.a[i_]:>("a["<>ToString@i<>"]")];
-  Print["Fit result: ",model/.x->"x"];
-  If[OptionValue["lEcho"],data//Return];
-  minmax=MinMax[data[[;;,1]]]*fact[[1;;2]];
-  Table[{x,fact[[3]]*model},{x,Subdivide[Sequence@@minmax,32]}]
+  fittedCurve=Module[{xx,yy},
+    xx=fact[[1;;2]]*MinMax[funcx[[2]][tmp[[;;,1]]]];
+    xx=Subdivide[Sequence@@xx,32];
+    yy=fact[[3]]*funcy[[2]][fit["Function"]/@funcx[[1]][xx]];
+    Transpose[{xx,yy}]
+  ];
+  
+  Print["Fit result: ",fit["BestFit"]/.x->"x"];
+  Association[
+    "FittedModel"->fit,
+    "FittedCurve"->fittedCurve,
+    "Parameters"->(p=If[llinear,fit["BestFitParameters"],(a/@Range[3])/.fit["BestFitParameters"]]),
+    "Error"->(e=fit["ParameterErrors"]),
+    "PwE"->Around@@@Transpose[{p,e}]
+  ]
 ]
 
 pkgDir=$InputFileName//DirectoryName;
@@ -164,6 +196,55 @@ pcWriteTexTable[file_,head_,content_,OptionsPattern[]]:=Module[{a},
 ]
 
 
+(* ::Section:: *)
+(*Combine data*)
+
+
+pcCombine[sim_String,simCont_String:"None",readF_,args__]:=
+Module[{sim2,data1,data2,t0,pos},
+  pcCombine::noNewDir="The second directory is not given, and newDirCont.in is not found.";
+  
+  sim2=simCont;
+  If[sim2=="None",
+    If[FileExistsQ[sim<>"/newDirCont.in"],
+      sim2=Import[sim<>"/newDirCont.in"],
+      Message[pcCombine:noNewDir];Return[$Failed]
+    ]
+  ];
+  
+  data1=readF[sim,args];
+  data2=readF[sim2,args];
+  
+  (* remove the t>=t0 part in data1 *)
+  t0=data2[[1,1]];
+  pos=Position[data1[[1]],tt_/;tt<t0];
+  data1=Extract[#,pos]&/@data1;
+  
+  Join@@@Transpose[{data1,data2}]
+]
+
+pcMergePower[sim_String,simCont_String]:=
+Module[{files,old,bk,combined},
+  pcMergePower::oldExists="A back-up file .old exists for `1`. Skipping.";
+  
+  files=FileNameTake/@FileNames["power*",sim<>"/data/"];
+  
+  Do[
+    old=FileNameJoin[{sim,"data",ff}];
+    bk=FileNameJoin[{sim,"data",ff<>".old"}];
+    
+    If[FileExistsQ[bk],Message[pcMergePower::oldExists,ff];Continue[]];
+    combined=pcCombine[sim,simCont,read1D,ff];
+    RenameFile[old,bk];
+    Export[old,Riffle@@combined],
+    
+    {ff,files}
+  ];
+  
+  Print["Finished combining: ",files]
+]
+
+
 (* ::Chapter:: *)
 (*End*)
 
@@ -174,7 +255,8 @@ End[]
 Protect[
   pcAround,pcDivide,pcDifferences,pcFit,
   pkgDir,
-  pcNumberToTex,pcWriteTexTable
+  pcNumberToTex,pcWriteTexTable,
+  pcCombine, pcMergePower
 ]
 
 

@@ -15,6 +15,7 @@ BeginPackage["pcPlot`","pcReadBasic`","pcRead1D`","pcRead2D`"]
 (*Usage messages*)
 
 
+pcColors::usage="Some self-defined colors."
 pcLabelStyle::usage="Font and size.";
 pcPlotStyle::usage="Set some plot styles.";
 pcPopup::usage="Using DisplayFunction->pcPopup will make a plot in a pop-up window."
@@ -96,6 +97,16 @@ Begin["`Private`"]
 
 
 (* ::Section:: *)
+(*Self-defined colors*)
+
+
+pcColors=Association[
+  "Red"->RGBColor[{166,42,23}/255],
+  "Blue"->RGBColor[{28,77,124}/255]
+];
+
+
+(* ::Section:: *)
 (*Plot style related*)
 
 
@@ -105,8 +116,8 @@ pcPlotStyle[]:=Module[{setOps},
   (*General options for all plots*)
   setOps[{
       PlotRange->All,Frame->True,LabelStyle->pcLabelStyle,
-      FrameStyle->pcLabelStyle,ImageSize->{300,300/GoldenRatio},
-      ImagePadding->{{60,10},{60,10}}
+      FrameStyle->pcLabelStyle,ImageSize->{360,360/GoldenRatio},
+      ImagePadding->{{60,10},{40,10}}
     },{
       Plot,LogPlot,LogLogPlot,LogLinearPlot,DensityPlot,
       ListPlot,ListLogPlot,ListLogLogPlot,ListLogLinearPlot,ListLinePlot,
@@ -307,6 +318,7 @@ End[]
 
 
 Protect[
+  pcColors,
   pcLabelStyle,pcPlotStyle,pcPopup,pcTicks,
   pcLegend,
   spaceTimeDiag,

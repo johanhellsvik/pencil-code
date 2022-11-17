@@ -51,6 +51,7 @@ module power_spectrum
   integer :: n_spectra=0
   integer :: inz=0, n_segment_x=1
   integer :: kout_max=0
+  integer :: specflux_pmin=0,specflux_pmax=nxgrid/2-1
   real :: max_k2 = (nxgrid/2)**2 + (nygrid/2)**2 + (nzgrid/2)**2
   integer, dimension(:), allocatable :: k2s
   integer :: nk_truebin=0
@@ -61,7 +62,8 @@ module power_spectrum
       pdf_max, pdf_min, pdf_min_logscale, pdf_max_logscale, &
       lread_gauss_quadrature, legendre_lmax, lshear_frame_correlation, &
       power_format, kout_max, tout_min, tout_max, specflux_dp, specflux_dq, &
-      lhorizontal_spectra, lvertical_spectra, ltrue_binning, max_k2
+      lhorizontal_spectra, lvertical_spectra, ltrue_binning, max_k2, &
+      specflux_pmin, specflux_pmax
 !
   contains
 !***********************************************************************
@@ -1053,7 +1055,7 @@ outer:  do ikz=1,nz
   real, dimension(nygrid) :: ky
   real, dimension(nzgrid) :: kz
   character (len=3) :: sp
-  logical, save :: lwrite_krms=.true., lwrite_krms_GWs=.false.
+  logical, save :: lwrite_krms=.true.
   logical :: lfirstcall
 !
 !  passive scalar contributions (hardwired for now)
@@ -1588,7 +1590,7 @@ outer:  do ikz=1,nz
     use Sub, only: gij, gij_etc, curl_mn, cross_mn
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i, k, ikx, iky, ikz, im, in, ivec, stat
+  integer :: i, k, ikx, iky, ikz, ivec, stat
   real :: k2
   real, dimension(mx,my,mz,mfarray) :: f
   real, dimension(mx,my,mz,3) :: Lor
@@ -1842,7 +1844,7 @@ outer:  do ikz=1,nz
     use Sub, only: gij, gij_etc, curl_mn, cross_mn
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i,k,ikx,iky,ikz,im,in,ivec, stat
+  integer :: i,k,ikx,iky,ikz,ivec, stat
   real :: k2
   real, dimension(mx,my,mz,mfarray) :: f
   real, dimension(mx,my,mz,3) :: Lor
@@ -2057,7 +2059,7 @@ outer:  do ikz=1,nz
     use Sub, only: gij, gij_etc, curl_mn, cross_mn
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i,k,ikx,iky,ikz,im,in,ivec
+  integer :: i,k,ikx,iky,ikz,ivec
   real :: k2
   real, dimension (mx,my,mz,mfarray) :: f
   real, dimension (mx,my,mz,3) :: EMF,JJJ,EMB,BBB
@@ -2250,7 +2252,7 @@ outer:  do ikz=1,nz
         h_dot_grad_vec
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i,k,ikx,iky,ikz,im,in,ivec
+  integer :: i,k,ikx,iky,ikz,ivec
   real :: k2
   real, dimension (mx,my,mz,mfarray) :: f
   real, dimension (mx,my,mz,3) :: Adv, Str, BBB
@@ -2448,11 +2450,9 @@ outer:  do ikz=1,nz
 
   integer, parameter :: nk=nxgrid/2
 
-  integer :: i,k,ikx,iky,ikz,im,in,ivec
+  integer :: i,k,ikx,iky,ikz
   real :: k2
   real, dimension(nx,ny,nz) :: a_re,a_im,b_re,b_im
-  real, dimension(nx,3) :: aa,bb,jj,jxb
-  real, dimension(nx,3,3) :: aij,bij
   real, dimension(nk) :: nks=0.,nks_sum=0.
   real, dimension(nk) :: k2m=0.,k2m_sum=0.,krms
   real, allocatable, dimension(:) :: spectrum,spectrumhel
@@ -3348,7 +3348,7 @@ endsubroutine pdf
   integer, parameter :: nk=nxgrid/2, npdf=130
   integer :: i,ivec,ikx,iky,ikz,kr,ipdf
   integer, dimension(nk-1,npdf) :: pdf_ang,pdf_ang_sum
-  real :: k2,ang
+  real :: ang
   real, dimension(nx,ny,nz,3) :: a_re,b_re
   real, dimension(nx,ny,nz) :: ak,bk,aa,bb,ab
   real, dimension(nx,3) :: bbi
@@ -3869,7 +3869,7 @@ endsubroutine pdf
 
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i, k, ikx, iky, ikz, jkz, ivec, jvec, im, in
+  integer :: i, ikx, iky, ikz, ivec, jvec, im, in
   integer :: ikr, ikmu
   integer, dimension(nk) :: nmu
   real, allocatable, dimension(:,:) :: kmu, dmu
@@ -4319,7 +4319,7 @@ endsubroutine pdf
     use Chiral, only: iXX_chiral, iYY_chiral
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i, ikx, iky, ikz, jkz, im, in, ivec
+  integer :: i, ikx, iky, ikz, im, in, ivec
   integer :: k3, k
   real, dimension (mx,my,mz,mfarray) :: f
   real, dimension(nx,ny,nz) :: a_re,a_im,b_re,b_im
@@ -4481,13 +4481,12 @@ endsubroutine pdf
     use SharedVariables, only: get_shared_variable
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i, k, ikx, iky, ikz, jkz, im, in, ivec, jvec, ivec_jj
-  integer :: nshear, jkx,jky
+  integer :: i, k, ikx, iky, ikz, jkz, ivec
+  integer :: jkx
   real :: k2
   real, pointer :: t_cor
   real, dimension (mx,my,mz,mfarray) :: f
   real, dimension(nx,ny,nz) :: a_re,a_im,b_re,b_im
-  real, dimension(nx,ny,nz) :: h_re,ht_re
   real, dimension(nk) :: nks=0.,nks_sum=0.
   real, dimension(nk) :: k2m=0.,k2m_sum=0.,krms
   real, dimension(nk) :: spectrum,spectrum_sum
@@ -4500,7 +4499,7 @@ endsubroutine pdf
   real, dimension(nygrid) :: ky
   real, dimension(nzgrid) :: kz
   character (len=*) :: sp
-  logical, save :: lwrite_krms=.true., lwrite_krms_GWs=.false.
+  logical, save :: lwrite_krms=.true.
 !
 !  identify version
 !
@@ -5054,13 +5053,13 @@ endsubroutine pdf
     use Cdata, only: pi
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i, ikx, iky, ikz, jkz, im, in, ivec, ivec_jj,ikr
+  integer :: i, ikx, iky, ikz, im, in, ivec, ikr
   integer :: nv,nvmin,nsum,nsub,icor
   integer :: kxx,kyy,kzz,kint
   real :: k2,rr,k,j0,j0x,j0y,j0z,j1
   real, dimension(4) :: w
   real, dimension (mx,my,mz,mfarray) :: f
-  real, dimension(nx,ny,nz) :: a_re,a_im,b_re,b_im,h_re,h_im
+  real, dimension(nx,ny,nz) :: a_re,b_re,h_re,h_im
   real, dimension(nx,ny,nz) :: gLam
   real, dimension(nx) :: bbi
   real, dimension(nx,3) :: gLam_tmp
@@ -5521,9 +5520,8 @@ endsubroutine pdf
     use Sub, only: gij, gij_etc, curl_mn, cross_mn, del2v_etc
 !
   integer, parameter :: nk=nxgrid/2
-  integer :: i,p,q,lp,lq,ivec,ikx,iky,ikz,k!,nlk
+  integer :: p,q,lp,lq,ivec,iky,ikz
   integer :: nlk_p, nlk_q
-  real :: k2
   real, dimension (mx,my,mz,mfarray) :: f
   real, dimension(nx,3) :: uu,aa,bb,uxb,jj,curljj
   real, dimension(nx,3,3) :: aij,bij
@@ -5531,6 +5529,7 @@ endsubroutine pdf
   real, dimension(nx,ny,nz,3) :: tmp_p,u_tmp,b_tmp,emf_q
   real, allocatable, dimension(:,:) :: Tpq,Tpq_sum
   character (len=2) :: sp
+  logical :: lTpq_anti_symmetric
 !
 !  identify version
 !
@@ -5541,9 +5540,9 @@ endsubroutine pdf
 !  and negative values for log steps. Default value for both is -2.
 !
   if (specflux_dp>0.) then
-    nlk_p = floor((nk-1.)/specflux_dp)+1
+    nlk_p = floor((specflux_pmax-specflux_pmin)/specflux_dp)+1
   elseif (specflux_dp<0.) then
-    nlk_p = floor(alog(nk-1.)/alog(-specflux_dp))+1
+    nlk_p = floor(alog(1.*specflux_pmax)/alog(-specflux_dp))+1
   else
     call fatal_error('power_transfer_mag','specflux_dp must be non-zero')
   endif
@@ -5556,6 +5555,12 @@ endsubroutine pdf
   endif
   if (.not.allocated(Tpq)) allocate( Tpq(nlk_p,nlk_q) )
   if (.not.allocated(Tpq_sum)) allocate( Tpq_sum(nlk_p,nlk_q) )
+!
+!  In some cases Tpq is anti-symmetric in p and q
+!
+  lTpq_anti_symmetric=.false.
+  if (specflux_dp==specflux_dq.and.nlk_p==nlk_q &
+      .and.sp=='Hm') lTpq_anti_symmetric=.true.
 !
 !  initialize spectral flux to zero
 !
@@ -5598,7 +5603,7 @@ endsubroutine pdf
 !
   do lp=0,nlk_p-1
     if (specflux_dp>0.) then
-      p=nint(specflux_dp*lp)
+      p=specflux_pmin+nint(specflux_dp*lp)
     else
       p=nint(abs(specflux_dp)**lp)
     endif
@@ -5619,11 +5624,7 @@ endsubroutine pdf
     enddo
     !
     do lq=0,nlk_q-1
-    !
-    !  only when sp='Hm', dp=dq and q>p, we don't need to compute Tpq
-    !
-    if (.not.(sp=='Hm'.and.specflux_dp==specflux_dq.and.lq>lp)) then
-      !  compute Tpq
+    if (.not.(lTpq_anti_symmetric.and.lq>lp)) then
       if (specflux_dq>0.) then
         q=nint(specflux_dq*lq)
       else
@@ -5653,16 +5654,14 @@ endsubroutine pdf
       enddo
       enddo
       !
-      !  T(p,q)=\int bbb_p \cdot emf_q dV
-      !
       Tpq(lp+1,lq+1) = Tpq(lp+1,lq+1) + dx*dy*dz*sum(tmp_p*emf_q)
     endif
     enddo  !  from q
   enddo  !  from p
 !
-!  fill the q>p half of Tpq if dp=dq
+!  fill the q>p half of Tpq
 !
-  if (sp=='Hm'.and.specflux_dp==specflux_dq) then
+  if (lTpq_anti_symmetric) then
     do lp=0,nlk_p-1
     do lq=lp+1,nlk_q-1
       Tpq(lp+1,lq+1)=-Tpq(lq+1,lp+1)

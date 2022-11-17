@@ -9,14 +9,12 @@ module Particles_mpicomm
 !
   use Cdata
   use General, only: keep_compiler_quiet
-  use Mpicomm
   use Messages
   use Particles_cdata
 !
-  use MPI, only: MPI_OFFSET_KIND
-!
   implicit none
 !
+  include 'mpif.h'
   include 'particles_mpicomm.h'
 !
   integer, parameter :: nxb=nxgrid/nbrickx,nyb=nygrid/nbricky,nzb=nzgrid/nbrickz
@@ -51,10 +49,6 @@ module Particles_mpicomm
   logical :: lreblock_particles_run=.false., lbrick_partition=.false.
   logical :: ladopt_own_light_bricks=.false.
 !
-  integer(kind=MPI_OFFSET_KIND) :: size_of_int = 0, size_of_real = 0, size_of_double = 0
-!
-  !include 'mpif.h'
-!
   contains
 !***********************************************************************
     subroutine initialize_particles_mpicomm(f)
@@ -64,7 +58,7 @@ module Particles_mpicomm
 !
 !  31-oct-09/anders: coded
 !
-      use MPI
+      use Mpicomm, only: mpi_precision, mpibcast_real
 !
       real, dimension (mx,my,mz,mfarray), intent (in) :: f
 !
@@ -119,19 +113,6 @@ module Particles_mpicomm
             nbrickz, nzgrid
         call fatal_error_local('initialize_particles_mpicomm','')
       endif
-      call fatal_error_local_collect()
-!
-!  Remeber the sizes of some MPI elementary types.
-!
-      call MPI_TYPE_SIZE_X(MPI_INTEGER, size_of_int, mpi_err)
-      if (mpi_err /= MPI_SUCCESS) call fatal_error_local("initialize_particles_mpicomm", "unable to find MPI_INTEGER size")
-!
-      call MPI_TYPE_SIZE_X(mpi_precision, size_of_real, mpi_err)
-      if (mpi_err /= MPI_SUCCESS) call fatal_error_local("initialize_particles_mpicomm", "unable to find MPI real size")
-!
-      call MPI_TYPE_SIZE_X(MPI_DOUBLE_PRECISION, size_of_double, mpi_err)
-      if (mpi_err /= MPI_SUCCESS) call fatal_error_local("initialize_particles_mpicomm", "unable to find MPI_DOUBLE_PRECISION size")
-!
       call fatal_error_local_collect()
 !
 !  Distribute particles evenly among processors to begin with.
@@ -433,6 +414,7 @@ module Particles_mpicomm
 !  28-oct-09/anders: coded
 !
       use Diagnostics, only: max_name
+      use Mpicomm, only: mpibcast_logical, mpirecv_int, mpirecv_real, mpireduce_or, mpisend_int, mpisend_real
 !
       real, dimension (mpar_loc,mparray) :: fp
       integer, dimension (mpar_loc) :: ipar
@@ -739,6 +721,7 @@ module Particles_mpicomm
 !  28-oct-09/anders: coded
 !
       use Diagnostics, only: max_name
+      use Mpicomm, only: mpibcast_logical, mpirecv_int, mpirecv_real, mpireduce_or, mpisend_int, mpisend_real
 !
       real, dimension (mpar_loc,mparray) :: fp
       integer, dimension (mpar_loc) :: ipar
@@ -1093,6 +1076,7 @@ module Particles_mpicomm
 !  TODO: For ncpus>>1000 this subroutine possibly uses too much memory.
 !
       use Diagnostics, only: max_name
+      use Mpicomm, only: mpibcast_logical, mpirecv_int, mpirecv_real, mpireduce_or, mpisend_int, mpisend_real
 !
       real, dimension (mpar_loc,mparray) :: fp
       integer, dimension (mpar_loc) :: ipar
@@ -1440,7 +1424,8 @@ module Particles_mpicomm
 !
 !  12-oct-09/anders: coded
 !
-      use Mpicomm
+      use Mpicomm, only: mpirecv_int, mpirecv_nonblock_int, mpirecv_nonblock_real, mpirecv_real, &
+                         mpisend_int, mpisend_nonblock_int, mpisend_nonblock_real, mpisend_real, mpiwait
 !
       real, dimension (mx,my,mz,mfarray) :: f
       real, dimension (mpar_loc,mparray) :: fp
@@ -2320,7 +2305,7 @@ module Particles_mpicomm
 !
 !  01-nov-22/ccyang: coded
 !
-      use MPI
+      use Mpicomm, only: mpi_precision, size_of_int, size_of_real, size_of_double
 !
       character(len=*), intent(in) :: filename
 !
@@ -2361,7 +2346,7 @@ module Particles_mpicomm
       offset = size_of_int * (ncpus * 3 + iproc * nbricks + 2 * nblock_cum + nparent_cum + nfoster_cum) &
              + size_of_real * (3 * (mxb + myb + mzb) * nblock_cum)
       call MPI_TYPE_CREATE_STRUCT(3, (/ 3, n, 3 * (mxb + myb + mzb) * nblock_loc /), &
-                                     (/ iproc * 3 * size_of_int, offset, offset + n * size_of_int /), &
+                                     int((/ iproc * 3 * size_of_int, offset, offset + n * size_of_int /), kind=MPI_ADDRESS_KIND), &
                                      (/ MPI_INTEGER, MPI_INTEGER, mpi_precision /), mpi_type, ierr)
       if (ierr /= MPI_SUCCESS) call fatal_error_local(rname, "unable to create MPI struct type")
 !
@@ -2520,7 +2505,7 @@ module Particles_mpicomm
 !
 !  01-nov-22/ccyang: coded
 !
-      use MPI
+      use Mpicomm, only: mpi_precision, size_of_int, size_of_real, size_of_double
 !
       character(len=*), intent(in) :: filename
 !
@@ -2586,7 +2571,7 @@ module Particles_mpicomm
       offset = size_of_int * (iproc * nbricks + 2 * nblock_cum + nparent_cum + nfoster_cum) &
              + size_of_real * (3 * (mxb + myb + mzb) * nblock_cum)
       call MPI_TYPE_CREATE_STRUCT(2, (/ n, 3 * (mxb + myb + mzb) * nblock_loc /), &
-                                     (/ offset, offset + size_of_int * n /), &
+                                     int((/ offset, offset + size_of_int * n /), kind=MPI_ADDRESS_KIND), &
                                      (/ MPI_INTEGER, mpi_precision /), mpi_type, ierr)
       if (ierr /= MPI_SUCCESS) call fatal_error_local(rname, "unable to create MPI struct type")
 !
@@ -2765,7 +2750,7 @@ module Particles_mpicomm
 !***********************************************************************
     subroutine report_missing_particles(message)
 !
-      use Mpicomm, only: mpireduce_sum_int
+      use Mpicomm, only: mpibcast_int, mpireduce_sum_int
 !
       character (len=*) :: message
 !
@@ -2926,8 +2911,6 @@ module Particles_mpicomm
 !  Finds the cumulative count from processes of upper ranks.
 !
 !  01-nov-22/ccyang: coded
-!
-      use MPI
 !
       integer, intent(in) :: nloc
       integer, intent(out) :: ncum

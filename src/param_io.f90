@@ -93,7 +93,7 @@ module Param_IO
       lread_oldsnap_onlyA, &
       ireset_tstart, tstart, lghostfold_usebspline, &
       lread_aux, lwrite_aux, lkinflow_as_aux, lenforce_maux_check, &
-      pretend_lnTT, lprocz_slowest, lzorder, &
+      lreport_undefined_diagnostics, pretend_lnTT, lprocz_slowest, lzorder, &
       lcopysnapshots_exp, bcx, bcy, bcz, r_int, r_ext, r_ref, rsmooth, &
       r_int_border, r_ext_border, mu0, force_lower_bound, force_upper_bound, &
       lseparate_persist, ldistribute_persist, lpersist, lomit_add_data, &
@@ -165,7 +165,7 @@ module Param_IO
       lnowrite, noghost_for_isave, nghost_read_fewer, &
       test_nonblocking, lwrite_tracers, lwrite_fsum, lwrite_fixed_points, lwrite_ts_hdf5, &
       lread_oldsnap_lnrho2rho, lread_oldsnap_nomag, lread_oldsnap_notestflow, lread_oldsnap_nopscalar, &
-      lread_oldsnap_notestfield, lread_oldsnap_notestscalar, lread_oldsnap_noshear, lrepair_snap, &
+      lread_oldsnap_notestfield, lread_oldsnap_notestscalar, lread_oldsnap_noshear, lrepair_snap, linterpol_on_repair, &
       lread_oldsnap_nohydro, lread_oldsnap_nohydro_efield, lread_oldsnap_nohydro_ekfield, &
       lread_oldsnap_noisothmhd, lread_oldsnap_onlyA, &
       lread_oldsnap_rho2lnrho, lread_oldsnap_nosink, lwrite_dim_again, lwrite_last_powersnap, &
@@ -183,8 +183,8 @@ module Param_IO
       fbcz1, fbcz2, fbcz1_1, fbcz1_2, fbcz2_1, fbcz2_2, &
       fbcx_bot, fbcx_top, fbcy_bot, fbcy_top, fbcz_bot, fbcz_top, &
       Udrift_bc, ttransient, tavg, idx_tavg, lserial_io, nr_directions, &
-      lsfu, lsfb, lsfz1, lsfz2, lsfflux, lpdfu, lpdfb, lpdfz1, lpdfz2, &
-      onedall, pretend_lnTT, old_cdtv, lmaxadvec_sum, save_lastsnap, &
+      lsfu, lsfb, lsfz1, lsfz2, lsfflux, lpdfu, lpdfb, lpdfz1, lpdfz2, onedall, &
+      lreport_undefined_diagnostics, pretend_lnTT, old_cdtv, lmaxadvec_sum, save_lastsnap, &
       lwrite_aux, lwrite_dvar, force_lower_bound, force_upper_bound, &
       lenforce_maux_check, nv1_capitalvar, mskipvar, lread_oldsnap_mskipvar, &
       oned, twod, lpoint, mpoint, npoint, lpoint2, mpoint2, npoint2, &
@@ -202,7 +202,7 @@ module Param_IO
       lread_less, lread_nogrid, lformat, ltec, &
       llsode, lsplit_second, nu_sts, permute_sts, lfargo_advection, &
       ldynamical_diffusion, ldyndiff_useumax, re_mesh, lghostfold_usebspline, &
-      lreset_seed, loutput_varn_at_exact_tsnap, lstop_on_ioerror, mailaddress, &
+      lreset_seed, loutput_varn_at_exact_tsnap, lstop_on_ioerror, mailaddress, mailcmd, submithost,&
       theta_lower_border, wborder_theta_lower, theta_upper_border, &
       wborder_theta_upper, fraction_tborder, lmeridional_border_drive, &
       lread_from_other_prec, downsampl, lfullvar_in_slices, ivar_omit, &

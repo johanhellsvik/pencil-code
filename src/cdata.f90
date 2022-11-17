@@ -654,8 +654,12 @@ module Cdata
 !
 !  A buffer in which to construct an error message.
 !
-  character (len=linelen) :: errormsg, mailcmd=''
-  character (len=linelen) :: mailaddress=''
+  character (len=linelen) :: errormsg
+!
+!  For mailing from code.
+!
+  character (len=linelen) :: mailcmd='',mailaddress='',submithost=''
+!
   logical :: lstop_on_ioerror=.true.
 !
 !  Auxiliary variables.
@@ -736,6 +740,11 @@ module Cdata
 !  functionality extent in entropy.f90.
 !
   logical :: pretend_lnTT=.false.
+!
+!  Use lreport_undefined_diagnostics=F to suppress reporting of
+!  undefined diagnostics. It puts hashes, but sometimes incorrectly so.
+!
+  logical :: lreport_undefined_diagnostics=.true.
 !
 !  Scrap yard. Please categorise these variables if you know what they do.
 !  Even better: move them to their relevant modules.
