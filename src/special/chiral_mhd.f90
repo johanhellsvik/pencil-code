@@ -108,7 +108,7 @@ module Special
    real, dimension (nx,3) :: aatest, bbtest
    real, dimension (nx,3,3) :: aijtest
    real, pointer :: eta
-   real :: cdtchiral=1.
+   real :: cdtchiral=0.4
    real, dimension (nx) :: dt1_lambda5, dt1_D5, dt1_gammaf5
    real, dimension (nx) :: dt1_CMW, dt1_Dmu, dt1_vmu, dt1_special
    real, dimension (nx) :: dt1_CVE1, dt1_CVE2 
@@ -128,7 +128,7 @@ module Special
   character (len=labellen) :: gammaf5_tdep='const'
 !
   namelist /special_init_pars/ &
-      initspecial, mu5_const, &
+      initspecial, mu5_const, cdtchiral, &
       lmuS, lCVE, lmu5adv, lmuSadv, muS_const, &
       amplmuS, kx_muS, ky_muS, kz_muS, phase_muS, &
       amplmu5, kx_mu5, ky_mu5, kz_mu5, phase_mu5, &
