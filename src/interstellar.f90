@@ -527,7 +527,7 @@ module Interstellar
       real, dimension (mx,my,mz,mfarray) :: f
       integer :: i, int1_list, stat
       integer, dimension(4) :: int4_list
-      real, dimension(9) :: real9_list
+      real, dimension(13) :: real13_list
       real :: t_list,x_list,y_list,z_list
       logical :: exist
 !
@@ -752,7 +752,7 @@ module Interstellar
       if (lroot .and. lstart) then
         open(1,file=trim(datadir)//'/sn_series.dat',position='append')
         write(1,'("#",5A)')  &
-            '---it-----------t----------itype-iproc---l-----m-----n-------x-',&
+            '---it-----------t------------itype-iproc---l-----m-----n-------x-',&
             '-----------y------------z-----------rho---------rhom---------',&
             '-TT-----------EE----------Ekin----------Ecr--------t_sedov---',&
             '---radius------site_Nsol----added_Nsol-------maxTT---', &
@@ -795,7 +795,7 @@ module Interstellar
         read(33,*,iostat=stat)
         do  i=1,nlist
           read(33,*,iostat=stat) &
-              int1_list,t_list,type_list,int4_list,x_list,y_list,z_list,real9_list
+              int1_list,t_list,type_list,int4_list,x_list,y_list,z_list,real13_list
           if (stat<0) exit
           SN_list(1,i)=t_list
           SN_list(2,i)=x_list
@@ -1969,7 +1969,7 @@ module Interstellar
               endif
               t_next_SNI=SN_list(1,i+1)
               if (lroot) print &
-                  "(1x,'check_SN: t_next_SNI on list =',e15.8)",t_next_SNI
+                  "(1x,'check_SN: t_next_SNI on list =',e16.8)",t_next_SNI
               exit
             endif
           enddo
@@ -3756,7 +3756,7 @@ module Interstellar
         print "(1x,'explode_SN:  Ambient Nsol = ',   e10.3)",site_mass/solar_mass
         print "(1x,'explode_SN:    Sedov time = ',   e10.3)", SNR%feat%t_sedov
         print "(1x,'explode_SN:   Shell speed = ',   e10.3)",uu_sedov
-        write(1,'(i10,E15.7,5i6,16E13.5)') &
+        write(1,'(i10,E16.8,5i6,16E13.5)') &
             it, t, SNR%indx%SN_type, SNR%indx%iproc, SNR%indx%l, SNR%indx%m, &
             SNR%indx%n, SNR%feat%x, SNR%feat%y, SNR%feat%z, SNR%site%rho, &
             SNR%feat%rhom, SNR%site%TT, SNR%feat%EE+SNR%feat%CR, &
